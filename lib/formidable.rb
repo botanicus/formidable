@@ -8,6 +8,17 @@ module Formidable
   class Form
     include Validations
     Renderers::String.register(self) do |form|
+      if (method = form.attributes[:method])
+        if ["GET", "POST"].include?(method)
+          form[:method] = method
+        elsif ["PUT", "DELETE"].include?(method)
+          form[:method] = "POST"
+          hidden_field(:_method, value: method)
+        else
+          raise ArgumentError, "Method can be GET, POST, PUT or DELETE, but not #{method}"
+        end
+      end
+
       buffer = String.new
       buffer << "<form>"
       form.elements.each do |element|
@@ -15,15 +26,6 @@ module Formidable
       end
       buffer += "</form>"
       buffer
-
-      # form.attributes[:method]
-      # if ["GET", "POST"].include?(method)
-      #   self["method"] = method
-      # elsif ["PUT", "DELETE"].include?(method)
-      #   hidden_field(:_method, value: method)
-      # else
-      #   raise ArgumentError, "Method can be GET, POST, PUT or DELETE, but not #{method}"
-      # end
     end
 
     def self.elements
