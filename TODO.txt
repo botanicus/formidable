@@ -1,0 +1,3 @@
+- code & specs
+- release 0.0.1
+- rubyflow, twitter

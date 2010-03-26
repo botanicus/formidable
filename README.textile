@@ -1,0 +1,33 @@
+h1. About
+
+h2. Presenter Pattern
+
+h2. Defining Forms
+
+h2. Saving Forms
+
+h2. Validations
+
+h2. Renderers
+
+h2. Custom Fields
+
+h2. Ideas
+
+JS validation plugin
+
+h1. Installation
+
+* Prerelease: @gem install form --development --prerelease@
+* Stable version: @gem install form --development@
+
+h1. Usage
+
+# TODO: write how to use your library
+
+h1. Links
+
+* "Source Code":http://github.com/botanicus/form
+* "Wiki":http://wiki.github.com/botanicus/form
+* "API Docs":http://rdoc.info/projects/botanicus/form
+* "Bug reporting":http://github.com/botanicus/form/issues
