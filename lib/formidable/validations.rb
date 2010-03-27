@@ -12,9 +12,14 @@
 =end
 
 module Formidable
+  class Errors < Hash
+    alias_method :on,  :[]
+    alias_method :add, :[]=
+  end
+
   module Validations
     def errors
-      @errors ||= Hash.new
+      @errors ||= Errors.new
     end
 
     def validations

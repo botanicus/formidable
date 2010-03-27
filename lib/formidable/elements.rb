@@ -1,39 +1,23 @@
 # encoding: utf-8
 
+require "formidable/coercions"
 require "formidable/rendering"
 require "formidable/validations"
 require "formidable/renderers/string"
 
 module Formidable
-  class Form
-    # We had a few beers and we decided that this is pretty cool :)
-    # This will define DSL method for creating email_field
-    # @example Formidable::Form.register self, :email_field
-    def self.register(klass, method_name)
-      metaclass = (class << self; self; end)
-      metaclass.send(:define_method, method_name) do |name, *args, &block|
-        element = klass.new(name, *args, &block)
-        elements << element
-        warn "Overriding method #{name}" if method_defined?(name)
-        define_method(name) do
-          element
-        end
-        element
-      end
-    end
-  end
-
   module Elements
     class Element
       include Rendering
       include Validations
-      attr_accessor :name, :value
-      def initialize(name, attributes = nil, &block)
-        @name, @attributes = name, attributes
-      end
+      include Coercions
 
-      def attributes
-        @attributes ||= {name: name, value: value}
+      attr_accessor :name, :data
+      attr_reader :attributes
+
+      def initialize(name, attributes = Hash.new, data = nil)
+        @name, @attributes, @data = name, attributes, data
+        @attributes.merge!(name: name)
       end
       
       def validate
@@ -41,17 +25,75 @@ module Formidable
           is_valid && validation.validate
         end
       end
+
+      alias_method :inspect, :render
     end
 
     class ElementList < Element # pro form, group, fieldset
-      def self.elements
-        @elements ||= Array.new
+      def initialize(*args, &block)
+        super(*args, &block)
+        set_data
       end
 
       def elements
-        self.class.elements
+        @elements ||= Array.new
+      end
+
+      def validate
+        self.elements.inject(self.errors) do |errors, element|
+          unless element.valid?
+            errors[element.name] = element.errors
+          end
+        end
+      end
+
+      protected
+      def set_data
+        @data ||= data
+        self.elements.each do |element|
+          element.data = @data[element.name]
+        end
       end
     end
+
+    class Form < ElementList
+      renderer Renderers::Form
+
+      # We had a few beers and we decided that this is pretty cool :)
+      # This will define DSL method for creating email_field
+      # @example Formidable::Form.register self, :email_field
+      def self.register(klass, method_name)
+        define_method(method_name) do |name, *args, &block|
+          element = klass.new(name, *args, &block)
+          elements << element
+          warn "Overriding method #{name}" if self.class.method_defined?(name)
+          self.class.send(:define_method, name) do
+            element
+          end
+          element
+        end
+      end
+
+      def initialize(prefix = Array.new, attributes = Hash.new, data = nil)
+        super(prefix, attributes, data)
+        self.setup
+      end
+
+      def setup
+        raise NotImplementedError, "You are supposed to redefine the setup method in subclasses of Element!"
+      end
+
+      def save(*args)
+        raise NotImplementedError, "You have to redefine this method in subclasses!"
+      end
+      alias_method :save!, :save
+
+      def update(*args)
+        raise NotImplementedError, "You have to redefine this method in subclasses!"
+      end
+      alias_method :update!, :update
+    end
+    
 
     class TextField < Element
       Form.register(self, :text_field)
@@ -76,8 +118,8 @@ module Formidable
 
       renderer Renderers::SimpleInputRenderer
 
-      def initialize(value = "Submit", attributes = Hash.new, &block)
-        @attributes = attributes.merge(value: value)
+      def initialize(value = "Submit", attributes = Hash.new, data = Hash.new)
+        super(Array.new, attributes.merge(value: value), data)
       end
     end
 

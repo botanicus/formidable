@@ -16,8 +16,17 @@ describe "Formidable" do
 
   describe "#render" do
     it "should call the #render method on renderer" do
+      puts "RENDER"
       puts @form.render
+
+      puts "VALID?"
       puts @form.valid?
+      
+      puts "ERRORS"
+      p @form.errors
+
+      puts "ACCESSORS"
+      puts @form.rating
     end
   end
 end
