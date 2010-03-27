@@ -9,14 +9,15 @@ describe "Formidable" do
   end
 
   describe "#renderer" do
-    it "should be an object responding to #call method" do
-      @form.renderer.should respond_to(:call)
+    it "should be an object responding to #render method" do
+      @form.renderer.should respond_to(:render)
     end
   end
 
   describe "#render" do
-    it "should call the #call method on renderer" do
-      p @form.render
+    it "should call the #render method on renderer" do
+      puts @form.render
+      puts @form.valid?
     end
   end
 end

@@ -5,11 +5,12 @@ require_relative "../../examples/basic"
 
 describe "Formidable::Elements" do
   before(:each) do
+    @form = BasicForm.new(action: "/create", method: "POST")
   end
 
   describe "#renderer" do
-    it "should be an object responding to #call method" do
-      @form.renderer.should respond_to(:call)
+    it "should be an object responding to #render method" do
+      @form.renderer.should respond_to(:render)
     end
   end
 

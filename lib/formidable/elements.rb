@@ -1,5 +1,6 @@
 # encoding: utf-8
 
+require "formidable/rendering"
 require "formidable/validations"
 require "formidable/renderers/string"
 
@@ -17,106 +18,117 @@ module Formidable
         define_method(name) do
           element
         end
+        element
       end
     end
   end
 
   module Elements
     class Element
+      include Rendering
       include Validations
       attr_accessor :name, :value
-      def initialize(name, *args, &block)
-        @name = name
+      def initialize(name, attributes = nil, &block)
+        @name, @attributes = name, attributes
+      end
+
+      def attributes
+        @attributes ||= {name: name, value: value}
       end
       
       def validate
-        raise NotImplementedError
+        self.validations.inject(true) do |is_valid, validation|
+          is_valid && validation.validate
+        end
+      end
+    end
+
+    class ElementList < Element # pro form, group, fieldset
+      def self.elements
+        @elements ||= Array.new
       end
 
-      def renderer
-        @renderer ||= Renderers::String.new
-      end
-
-      def renderer_callable
-        @renderer_callable ||= renderer[self.class]
-      end
-
-      def render
-        renderer_callable.call(self, renderer)
+      def elements
+        self.class.elements
       end
     end
 
     class TextField < Element
       Form.register(self, :text_field)
 
-      Renderers::String.register(self) do |element|
-        "<input name='#{element.name}' value='#{element.value}' />"
-      end
+      renderer Renderers::LabeledInputRenderer
     end
 
     class TextArea < Element
       Form.register(self, :text_area)
 
-      Renderers::String.register(self) do |element|
-      end
+      renderer Renderers::LabeledInputRenderer
     end
 
     class HiddenField < Element
       Form.register(self, :hidden_field)
 
-      Renderers::String.register(self) do |element|
-      end
+      renderer Renderers::LabeledInputRenderer
     end
 
     class Submit < Element
       Form.register(self, :submit)
 
-      Renderers::String.register(self) do |element|
-        self_close_tag(type: "submit", value: element.value)
-        "<input type='submit' value='#{element.value}' />"
+      renderer Renderers::SimpleInputRenderer
+
+      def initialize(value = "Submit", attributes = Hash.new, &block)
+        @attributes = attributes.merge(value: value)
       end
     end
 
     class Button < Element
       Form.register(self, :button)
 
-      Renderers::String.register(self) do |element|
-      end
+      renderer Renderers::Button
     end
 
-    class Group < Element
+    class Group < ElementList
       Form.register(self, :group)
 
-      Renderers::String.register(self) do |element|
-      end
+      renderer Renderers::Blank
     end
 
-    class Fieldset < Element
+    class Fieldset < ElementList
       Form.register(self, :fieldset)
 
-      Renderers::String.register(self) do |element|
-      end
+      renderer Renderers::Fieldset
     end
     
     class FileField < Element
       Form.register(self, :file_field)
 
+      renderer Renderers::LabeledInputRenderer
+
       def initialize(*args)
         super(*args)
         self.form.multipart = true
-      end
-
-      Renderers::String.register(self) do |element|
       end
     end
 
     class EmailField < TextField
       Form.register(self, :email_field)
+    end
 
-      Renderers::String.register(self) do |e|
-        element = Renderers::String.renderers[TextField].call(e)
-        element["class"] = "email"
-        element
+    # zna to svoje name => vi kde v params to najit
+    # {date: "27-07-2010"} => {date: #<Date:x0>}
+    class DateSelectField < Element
+      # TOHLE BUDE V SUPERCLASS
+      # jak to ma dostat params?
+      def deserialize
+        # [:post, :title]
+        self.name.inject(params) do |hash, key|
+          hash[key]
+        end
+      end
+
+      # TOHLE BUDE TADY
+      def deserialize
+        Date.new(super)
       end
     end
   end

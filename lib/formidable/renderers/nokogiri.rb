@@ -6,8 +6,6 @@ rescue LoadError
   raise LoadError, "You have to install nokogiri gem if you want to use nokogiri renderer!"
 end
 
-require "formidable/renderer"
-
 module Formidable
   module Renderers
     class Nokogiri < Renderer
