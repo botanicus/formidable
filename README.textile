@@ -1,6 +1,16 @@
 h1. About
 
-h2. Presenter Pattern
+Formidable takes care about your forms. You write a class and
+
+* Get logic out of your views.
+* Get logic out of your controllers (presenter pattern).
+* Validations will work even if the form can't be mapped directly to the models.
+* You can unit test your forms directly without touching the template layer at all.
+
+* Validations
+* Coercions
+
+Forms contains quite complex logic which definitely shouldn't be in your views
 
 h2. Defining Forms
 
@@ -16,18 +26,53 @@ h2. Ideas
 
 JS validation plugin
 
-h1. Installation
-
-* Prerelease: @gem install form --development --prerelease@
-* Stable version: @gem install form --development@
-
 h1. Usage
 
-# TODO: write how to use your library
+h2. Form Definitions
+
+<pre>
+
+</pre>
+
+h2. Controller Code
+
+<pre>
+class Posts
+  def new
+    @form ||= PostForm.new
+    @form.attributes[:method] = "POST"
+  end
+  
+  def edit
+    @form ||= PostForm.new
+    @form.attributes[:method] = "PUT"
+  end
+  
+  def create(raw_data)
+    @form = PostForm.new(nil, raw_data)
+    if @form.save
+      redirect url(:posts)
+    else
+      self.new
+    end
+  end
+  
+  def update(id, raw_data)
+    @form = PostForm.new(nil, raw_data)
+    if @form.update(id)
+      redirect url(:posts)
+    else
+      self.edit
+    end
+  end
+end
+</pre>
+
+You can find more examples at the @examples@ directory.
 
 h1. Links
 
-* "Source Code":http://github.com/botanicus/form
-* "Wiki":http://wiki.github.com/botanicus/form
-* "API Docs":http://rdoc.info/projects/botanicus/form
-* "Bug reporting":http://github.com/botanicus/form/issues
+* "Source Code":http://github.com/botanicus/formidable
+* "Wiki":http://wiki.github.com/botanicus/formidable
+* "API Docs":http://rdoc.info/projects/botanicus/formidable
+* "Bug reporting":http://github.com/botanicus/formidable/issues

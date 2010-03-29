@@ -1,0 +1,19 @@
+/ You might not need to have a template for your form. In case you
+/ don't have any special need, just use form.render and that's it.
+
+/ Specify renderer you want to use.
+= form.errors.render(ErrorsListRenderer.new)
+
+/ Haml tags can take hash as an argument, so why not simply use form.attributes.
+%form{form.attributes}
+  / Render tags you want to display.
+  = form.post.title.render
+  / Iterate over elements
+  - form.post.tags.each do |tag|
+    = tag.render
+  / Or write fully customized HTML.
+  %label{for: "input-body"}
+  - if form.post.errors.on(:title)
+    %input#input-title.errors{name: "post[title]", value: form.post.title}
+  - else
+    %input#input-title{name: "post[title]", value: form.post.title}

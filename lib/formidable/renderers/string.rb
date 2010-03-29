@@ -1,5 +1,6 @@
 # encoding: utf-8
 
+# TODO: support for errors (validate before render)
 module Formidable
   module Renderers
     class Renderer
@@ -38,6 +39,12 @@ module Formidable
       end
     end
 
+    class SimpleTagRenderer < Renderer
+      def render
+        tag(element.name, element.attributes) { element.content } + "\n"
+      end
+    end
+
     class LabeledInputRenderer < SimpleInputRenderer
       def render
         id = element.attributes[:id]
@@ -56,7 +63,9 @@ module Formidable
     class Fieldset < SimpleInputRenderer
       def render
         tag(:fieldset) do
-          tag(:legend, element.legend)
+          element.elements.map do |element|
+            element.render
+          end.join("\n")
         end
       end
     end
@@ -66,6 +75,14 @@ module Formidable
         ""
       end
     end
+
+    class Group < Renderer
+      def render
+        element.elements.map do |element|
+          element.render
+        end.join("\n")
+      end
+    end
     
     class Form < Renderer
       def render
@@ -73,24 +90,24 @@ module Formidable
           set_method(method)
         end
 
-        tag(:form) do
+        tag(:form, element.attributes) do
           element.elements.map do |element|
             element.render
           end.join("\n")
         end
       end
-    end
-    
-    protected
-    def set_method(method)
-      if method
-        if ["GET", "POST"].include?(method)
-          form[:method] = method
-        elsif ["PUT", "DELETE"].include?(method)
-          form[:method] = "POST"
-          hidden_field(:_method, value: method)
-        else
-          raise ArgumentError, "Method can be GET, POST, PUT or DELETE, but not #{method}"
+      
+      protected
+      def set_method(method)
+        if method
+          if ["GET", "POST"].include?(method)
+            element.attributes[:method] = method
+          elsif ["PUT", "DELETE"].include?(method)
+            element.attributes[:method] = "POST"
+            hidden_field(:_method, value: method)
+          else
+            raise ArgumentError, "Method can be GET, POST, PUT or DELETE, but not #{method}"
+          end
         end
       end
     end

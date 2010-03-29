@@ -1,16 +1,12 @@
 # encoding: utf-8
 
-# name=name
-# SimpleForm.new(name: "Pavel")
-# SimpleForm.new(user: )
-
-# text_field, text_area -> value = data[key]
-# data == user: {}, tags: [{name: "Ruby"}]
+# text_field, text_area -> value = raw_data[key]
+# raw_data == user: {}, tags: [{name: "Ruby"}]
 # form = PostForm.new(@post.values, Author.all)
 class PostForm < Formidable::Form
   namespace :post
-  def initialize(data, authors)
-    super(data)
+  def initialize(raw_data, authors)
+    super(raw_data)
     @authors = authors
   end
 
@@ -36,7 +32,7 @@ class PostForm < Formidable::Form
   
   select(:author) do
     @authors.each do |author|
-      option selected: (author == data[:author])
+      option selected: (author == raw_data[:author])
     end
   end
   

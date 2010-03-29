@@ -25,9 +25,6 @@ Gem::Specification.new do |s|
   # Ruby version
   s.required_ruby_version = ::Gem::Requirement.new(">= 1.9")
 
-  # runtime dependencies
-  s.add_dependency "validatable"
-
   begin
     require "changelog"
   rescue LoadError

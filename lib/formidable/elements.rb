@@ -12,56 +12,23 @@ module Formidable
       include Validations
       include Coercions
 
-      attr_accessor :name, :data
+      attr_accessor :name, :raw_data, :content
       attr_reader :attributes
 
-      def initialize(name, attributes = Hash.new, data = nil)
-        @name, @attributes, @data = name, attributes, data
-        @attributes.merge!(name: name)
+      def initialize(name, attributes = Hash.new, raw_data = nil)
+        @name, @attributes, @raw_data = name, attributes, raw_data
+        @attributes.merge!(name: name, value: raw_data)
       end
       
-      def validate
-        self.validations.inject(true) do |is_valid, validation|
-          is_valid && validation.validate
-        end
+      def set_raw_data(raw_data)
+        @raw_data = self.attributes[:value] = raw_data
       end
-
-      alias_method :inspect, :render
     end
 
     class ElementList < Element # pro form, group, fieldset
-      def initialize(*args, &block)
-        super(*args, &block)
-        set_data
-      end
-
-      def elements
-        @elements ||= Array.new
-      end
-
-      def validate
-        self.elements.inject(self.errors) do |errors, element|
-          unless element.valid?
-            errors[element.name] = element.errors
-          end
-        end
-      end
-
-      protected
-      def set_data
-        @data ||= data
-        self.elements.each do |element|
-          element.data = @data[element.name]
-        end
-      end
-    end
-
-    class Form < ElementList
-      renderer Renderers::Form
-
       # We had a few beers and we decided that this is pretty cool :)
       # This will define DSL method for creating email_field
-      # @example Formidable::Form.register self, :email_field
+      # @example Formidable::ElementList.register self, :email_field
       def self.register(klass, method_name)
         define_method(method_name) do |name, *args, &block|
           element = klass.new(name, *args, &block)
@@ -74,9 +41,46 @@ module Formidable
         end
       end
 
-      def initialize(prefix = Array.new, attributes = Hash.new, data = nil)
-        super(prefix, attributes, data)
+      include GroupValidations
+      def initialize(*args, &block)
+        super(*args) # we need to get elements first
+        self.instance_eval(&block) if block
+      end
+
+      def elements
+        @elements ||= Array.new
+      end
+
+      def cleaned_data
+        self.elements.inject(Hash.new) do |result, element|
+          result[element.name] = element.cleaned_data
+          result
+        end
+      end
+
+      def raw_data
+        self.elements.inject(Hash.new) do |result, element|
+          result[element.name] = element.raw_data
+          result
+        end
+      end
+
+      protected
+      def set_raw_data(raw_data)
+        self.elements.each do |element|
+          element.set_raw_data(raw_data[element.name]) if raw_data
+        end
+      end
+    end
+
+    class Form < ElementList
+      renderer Renderers::Form
+
+      # TODO: prefix should be in the form definition (name or namespace)
+      def initialize(prefix = nil, attributes = Hash.new, raw_data = nil)
         self.setup
+        super(prefix, attributes, raw_data)
+        set_raw_data(raw_data)
       end
 
       def setup
@@ -96,53 +100,68 @@ module Formidable
     
 
     class TextField < Element
-      Form.register(self, :text_field)
+      ElementList.register(self, :text_field)
+
+      def initialize(name, attributes = Hash.new, raw_data = nil)
+        super(name, attributes.merge!(type: "text"), raw_data)
+      end
 
       renderer Renderers::LabeledInputRenderer
     end
 
     class TextArea < Element
-      Form.register(self, :text_area)
+      ElementList.register(self, :text_area)
 
       renderer Renderers::LabeledInputRenderer
     end
 
     class HiddenField < Element
-      Form.register(self, :hidden_field)
+      ElementList.register(self, :hidden_field)
 
       renderer Renderers::LabeledInputRenderer
     end
 
     class Submit < Element
-      Form.register(self, :submit)
+      ElementList.register(self, :submit)
 
       renderer Renderers::SimpleInputRenderer
 
-      def initialize(value = "Submit", attributes = Hash.new, data = Hash.new)
-        super(Array.new, attributes.merge(value: value), data)
+      def initialize(value = "Submit", attributes = Hash.new, raw_data = Hash.new)
+        super(:submit, attributes.merge(value: value, type: "submit"), raw_data)
       end
     end
 
     class Button < Element
-      Form.register(self, :button)
+      ElementList.register(self, :button)
 
       renderer Renderers::Button
     end
 
     class Group < ElementList
-      Form.register(self, :group)
+      ElementList.register(self, :group)
 
-      renderer Renderers::Blank
+      renderer Renderers::Group
     end
 
     class Fieldset < ElementList
-      Form.register(self, :fieldset)
+      ElementList.register(self, :fieldset)
 
       renderer Renderers::Fieldset
     end
+
+    class Legend < Element
+      Fieldset.register(self, :legend)
+
+      renderer Renderers::SimpleTagRenderer
+
+      def initialize(content, attributes = Hash.new)
+        self.content = content
+        super(:legend, attributes)
+      end
+    end
     
     class FileField < Element
-      Form.register(self, :file_field)
+      ElementList.register(self, :file_field)
 
       renderer Renderers::LabeledInputRenderer
 
@@ -153,7 +172,7 @@ module Formidable
     end
 
     class EmailField < TextField
-      Form.register(self, :email_field)
+      ElementList.register(self, :email_field)
     end
 
     # zna to svoje name => vi kde v params to najit
