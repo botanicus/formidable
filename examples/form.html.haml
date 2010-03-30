@@ -1,6 +1,0 @@
-%form{action: url(:post)}
-  %label{for: "input-title"}
-  - if form.post.errors.on(:title)
-    %input#input-title.errors{name: "post[title]", value: form.post.title}
-  - else
-    %input#input-title{name: "post[title]", value: form.post.title}
