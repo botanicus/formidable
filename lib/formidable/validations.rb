@@ -17,19 +17,15 @@ module Formidable
     alias_method :add, :[]=
   end
 
-  module Elements
-    class Element
-      def self.register_validation(klass, method_name) # TODO: pridavat to spis do validations mixinu nez primo do elementu
-        define_method(method_name) do |*args, &block|
-          validation = klass.new(self, *args, &block)
-          validations << validation
-          self
-        end
+  module Validations
+    def self.register_validation(klass, method_name)
+      define_method(method_name) do |*args, &block|
+        validation = klass.new(self, *args, &block)
+        validations << validation
+        self
       end
     end
-  end
 
-  module Validations
     def errors
       @errors ||= Array.new
     end
@@ -39,10 +35,11 @@ module Formidable
     end
 
     def valid?
-      @errors || self.validate
+      self.validate
     end
 
     def validate
+      self.errors.clear
       self.validations.inject(true) do |is_valid, validation|
         validation_passed = validation.valid?
         unless validation_passed
@@ -54,15 +51,31 @@ module Formidable
   end
 
   module GroupValidations # TODO: better name
-    include Validations
+    def self.register_validation(klass, method_name)
+      define_method(method_name) do |*args, &block|
+        validation = klass.new(self, *args, &block)
+        validations << validation
+        self
+      end
+    end
+
     def errors
       @errors ||= Errors.new
+    end
+
+    def validations
+      @validations ||= Array.new
+    end
+
+    def valid?
+      self.validate
     end
 
     def before_validate
     end
 
     def validate
+      self.errors.clear
       self.before_validate
       self.elements.each do |element|
         unless element.valid?
@@ -75,7 +88,8 @@ module Formidable
 
   class Validations::Validation
     def self.register(method_name)
-      Elements::Element.register_validation(self, method_name)
+      Validations.register_validation(self, method_name)
+      GroupValidations.register_validation(self, method_name)
     end
 
     attr_reader :element
