@@ -5,6 +5,15 @@ module Formidable
     class ValidatePresence < Validation
       register(:validate_presence)
 
+      def initialize(*args)
+        super(*args)
+
+        # HTML 5
+        unless element.attributes.has_key?(:required)
+          element.attributes[:required] = true
+        end
+      end
+
       def valid?
         ! element.cleaned_data.nil?
       end
