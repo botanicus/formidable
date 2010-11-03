@@ -10,7 +10,7 @@ module Formidable
       end
 
       def tag(name, attributes = nil, &block)
-        "<#{name}#{hash_to_attributes_string(attributes) if attributes}>#{"\n#{block.call}\n" if block}</#{name}>"
+        "<#{name}#{hash_to_attributes_string(attributes) if attributes}>#{block.call if block}</#{name}>"
       end
 
       def self_close_tag(name, attributes = nil)
@@ -25,7 +25,9 @@ module Formidable
       def hash_to_attributes_string(hash)
         hash.inject("") do |buffer, pair|
           attribute, value = pair
-          if value
+          if value == true
+            buffer += " #{attribute}"
+          elsif value
             buffer += " #{attribute}='#{value}'" # TODO: h(value)
           end
           buffer
@@ -41,25 +43,24 @@ module Formidable
 
     class SimpleTagRenderer < Renderer
       def render
-        tag(element.name, element.attributes) { element.content } + "\n"
+        tag(element.tag, element.attributes) { element.content }
+      end
+    end
+
+    class LongTagRenderer < SimpleTagRenderer
+      def render
+        super + "\n"
       end
     end
 
     class LabeledInputRenderer < SimpleInputRenderer
       def render
-        id = element.attributes[:id]
-        raise "You have to provide id attribute if you want to use LabeledInputRenderer!" if id.nil?
-        buffer = tag(:label, for: id) { element.attributes[:title] } + "\n"
+        id = element.attributes[:id] || (element.attributes[:id] = "random-#{element.object_id}")
+        buffer = tag(:label, for: id) { element.attributes[:title] || element.attributes[:placeholder] } + "\n"
         buffer + super
       end
     end
 
-    class Button < SimpleInputRenderer
-      def render
-        tag(:button, element.attributes)
-      end
-    end
-    
     class Fieldset < SimpleInputRenderer
       def render
         tag(:fieldset) do
@@ -83,20 +84,27 @@ module Formidable
         end.join("\n")
       end
     end
-    
+
     class Form < Renderer
-      def render
+      # = form.render
+      # = form.render do
+      #   %div= form.submit
+      def render(&block)
         if method = element.attributes[:method]
           set_method(method)
         end
 
-        tag(:form, element.attributes) do
-          element.elements.map do |element|
-            element.render
-          end.join("\n")
+        block ||= begin
+          Proc.new do
+            element.elements.map do |element|
+              element.render
+            end.join("\n")
+          end
         end
+
+        tag(:form, element.attributes, &block)
       end
-      
+
       protected
       def set_method(method)
         if method
