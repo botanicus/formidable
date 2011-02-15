@@ -3,6 +3,6 @@
 
 # You might think this is a terrible mess and guess what, you're
 # right mate! However say thanks to authors of RubyGems, not me.
-eval(File.read("form.gemspec")).tap do |specification|
+eval(File.read("formidable.gemspec")).tap do |specification|
   specification.version = "#{specification.version}.pre"
 end
