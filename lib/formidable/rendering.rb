@@ -8,7 +8,7 @@ module Formidable
       klass.extend(ClassMethods)
       klass.extend Module.new {
         def inherited(subclass)
-          subclass.renderer(default_renderer)
+          subclass.renderer(default_renderer, &rendering_block)
         end
       }
     end
@@ -17,7 +17,8 @@ module Formidable
     def renderer
       @renderer ||= begin
         renderer = self.class.default_renderer
-        renderer.new(self) unless renderer.nil?
+        rendering_block = self.class.rendering_block
+        renderer.new(self, &rendering_block) unless renderer.nil?
       end
     end
 
@@ -32,10 +33,11 @@ module Formidable
     end
 
     module ClassMethods
-      attr_reader :default_renderer
+      attr_reader :default_renderer, :rendering_block
 
-      def renderer(default_renderer)
+      def renderer(default_renderer, &rendering_block)
         @default_renderer = default_renderer
+        @rendering_block  = rendering_block
       end
     end
   end

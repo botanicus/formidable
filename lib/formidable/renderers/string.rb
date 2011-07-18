@@ -4,9 +4,9 @@
 module Formidable
   module Renderers
     class Renderer
-      attr_reader :element
-      def initialize(element)
-        @element = element
+      attr_reader :element, :rendering_block
+      def initialize(element, &rendering_block)
+        @element, @rendering_block = element, rendering_block
       end
 
       def tag(name, attributes = nil, &block)
@@ -53,12 +53,21 @@ module Formidable
       end
     end
 
-    class LabeledInputRenderer < SimpleInputRenderer
+    # Point of this mixin is that we want to have two classes with the same functionality, but different superclass (so super call will render input or tag, depending on what we want).
+    module LabeledElementMixin
       def render
         id = element.attributes[:id] || (element.attributes[:id] = "random-#{element.object_id}")
         buffer = tag(:label, for: id) { element.attributes[:title] || element.attributes[:placeholder] } + "\n"
         buffer + super
       end
+    end
+
+    class LabeledInputRenderer < SimpleInputRenderer
+      include LabeledElementMixin
+    end
+
+    class LabeledTagRenderer < SimpleTagRenderer
+      include LabeledElementMixin
     end
 
     class Fieldset < SimpleInputRenderer
@@ -92,6 +101,14 @@ module Formidable
       def render(&block)
         if method = element.attributes[:method]
           set_method(method)
+        end
+
+        if self.rendering_block
+          block ||= Proc.new do
+            element.elements.map do |element|
+              self.instance_exec(element, &rendering_block)
+            end.join("\n")
+          end
         end
 
         block ||= begin

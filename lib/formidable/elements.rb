@@ -121,7 +121,8 @@ module Formidable
       renderer Renderers::Form
 
       # TODO: prefix should be in the form definition (name or namespace)
-      def initialize(action, method = "POST", prefix = nil, attributes = Hash.new, raw_data = nil)
+      def initialize(action, method = "POST", prefix = nil, attributes = Hash.new, raw_data = Hash.new)
+        @raw_data = raw_data
         self.setup
         super(:form, nil, attributes.merge!(action: action, method: method), raw_data)
         set_prefix(prefix) if prefix
