@@ -188,6 +188,16 @@ module Formidable
       end
     end
 
+    class CheckBox < Input
+      ElementList.register(self, :check_box)
+
+      def initialize(name, attributes = Hash.new, raw_data = nil)
+        super(name, attributes.merge!(type: "checkbox"), raw_data)
+      end
+
+      renderer Renderers::LabeledInputRenderer
+    end
+
     class Submit < Input
       ElementList.register(self, :submit)
 
