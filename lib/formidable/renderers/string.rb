@@ -57,7 +57,7 @@ module Formidable
     module LabeledElementMixin
       def render
         id = element.attributes[:id] || (element.attributes[:id] = "random-#{element.object_id}")
-        buffer = tag(:label, for: id) { element.attributes[:title] || element.attributes[:placeholder] } + "\n"
+        buffer = tag(:label, for: id) { element.attributes[:label] || element.attributes[:title] || element.attributes[:placeholder] } + "\n"
         buffer + super
       end
     end
